@@ -1,4 +1,4 @@
-import { Calendar, Home, Users, Briefcase, BookOpen, Settings, HelpCircle, User, FileText, Shield, BarChart3, AlertTriangle, Search, Star, UserPlus } from "lucide-react"
+import { Calendar, Home, Users, Briefcase, BookOpen, Settings, HelpCircle, User, FileText, Shield, BarChart3, AlertTriangle, Search, Star, UserPlus, Sparkles } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useRole } from "@/contexts/RoleContext"
 import { useAuth } from "@/contexts/AuthContext"
@@ -48,13 +48,23 @@ const clientNavigation = [
 const adminNavigation = [
   {
     title: "Admin Dashboard",
-    url: "/",
+    url: "/admin-dashboard",
     icon: Shield,
   },
   {
     title: "User Management",
     url: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Review Jobs",
+    url: "/admin/review-jobs",
+    icon: Briefcase,
+  },
+  {
+    title: "Spotlight Success",
+    url: "/admin/spotlight",
+    icon: Sparkles,
   },
   {
     title: "System Analytics",

@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 type UserRole = 'student' | 'client' | 'admin';
 
@@ -23,7 +24,31 @@ interface RoleProviderProps {
 }
 
 export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
-  const [role, setRole] = useState<UserRole>('client');
+  const { user, userRole, isGuest } = useAuth();
+  const [role, setRoleState] = useState<UserRole>('client');
+  const [manual, setManual] = useState(false);
+
+  // Allow manual switching via RoleSelector
+  const setRole = (r: UserRole) => {
+    setManual(true);
+    setRoleState(r);
+  };
+
+  // Auto-sync to authenticated user role when not manually overridden
+  useEffect(() => {
+    if (!manual) {
+      if (userRole) setRoleState(userRole as UserRole);
+      else setRoleState('client');
+    }
+  }, [userRole, manual]);
+
+  // Reset override on logout or when leaving guest mode
+  useEffect(() => {
+    if (!user && !isGuest) {
+      setManual(false);
+      setRoleState('client');
+    }
+  }, [user, isGuest]);
 
   return (
     <RoleContext.Provider value={{ role, setRole }}>

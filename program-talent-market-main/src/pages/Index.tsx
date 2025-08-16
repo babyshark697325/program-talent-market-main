@@ -17,26 +17,56 @@ const ALL_SKILLS = Array.from(
   new Set([...mockStudents.flatMap((s) => s.skills), ...mockJobs.flatMap((j) => j.skills)])
 );
 
-// Featured student data (could be rotated weekly)
-const featuredStudent = {
-  id: 1,
-  name: "Alex Rivera",
-  title: "Full-Stack Web Developer",
-  avatarUrl: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=facearea&w=256&h=256&facepad=2&q=80",
-  skills: ["Web Development", "Programming", "UI/UX Design"],
-  quote: "Building amazing web experiences is my passion. Every line of code I write aims to create something that users will love and businesses will thrive with!",
-  clientReview: {
-    text: "Alex built our entire e-commerce platform from scratch and it's been a game-changer for our business. The site is fast, beautiful, and user-friendly. Sales increased by 40% in the first month!",
-    clientName: "Sarah Johnson, Store Owner",
-    rating: 5
+// Spotlight settings pulled from localStorage; fallback to default
+const LS_QUOTE_KEY = "spotlight.quote";
+const LS_STUDENT_ID_KEY = "spotlight.studentId";
+const LS_SHOWCASE_IMAGE_KEY = "spotlight.showcaseImage";
+
+function getSpotlightFromStorage() {
+  try {
+    const q = localStorage.getItem(LS_QUOTE_KEY) || "";
+    const sid = localStorage.getItem(LS_STUDENT_ID_KEY);
+    const img = localStorage.getItem(LS_SHOWCASE_IMAGE_KEY) || "";
+    const id = sid ? Number(sid) : 1;
+    const s = mockStudents.find((m) => m.id === id) || mockStudents[0];
+    return {
+      id: s.id,
+      name: s.name,
+      title: s.title,
+      avatarUrl: s.avatarUrl,
+      skills: s.skills,
+      quote: q || "Building amazing web experiences is my passion. Every line of code I write aims to create something that users will love and businesses will thrive with!",
+      showcaseImage: img || undefined,
+      clientReview: {
+        text: "Alex built our entire e-commerce platform from scratch and it's been a game-changer for our business. The site is fast, beautiful, and user-friendly. Sales increased by 40% in the first month!",
+        clientName: "Sarah Johnson, Store Owner",
+        rating: 5
+      }
+    };
+  } catch {
+    const s = mockStudents[0];
+    return {
+      id: s.id,
+      name: s.name,
+      title: s.title,
+      avatarUrl: s.avatarUrl,
+      skills: s.skills,
+      quote: "Building amazing web experiences is my passion. Every line of code I write aims to create something that users will love and businesses will thrive with!",
+      clientReview: {
+        text: "Alex built our entire e-commerce platform from scratch and it's been a game-changer for our business. The site is fast, beautiful, and user-friendly. Sales increased by 40% in the first month!",
+        clientName: "Sarah Johnson, Store Owner",
+        rating: 5
+      }
+    };
   }
-};
+}
 
 const Index: React.FC = () => {
   const [search, setSearch] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"students" | "jobs">("students");
   const [jobs, setJobs] = useState<JobPosting[]>(mockJobs);
+  const [featured, setFeatured] = useState(getSpotlightFromStorage());
   const [sortBy, setSortBy] = useState<"name" | "price" | "rating">("name");
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,6 +81,13 @@ const Index: React.FC = () => {
       navigate(location.pathname, { replace: true });
     }
   }, [location.state, navigate, location.pathname]);
+
+  // Reload spotlight on focus in case admin updated it
+  useEffect(() => {
+    const onFocus = () => setFeatured(getSpotlightFromStorage());
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   console.log("Current activeTab:", activeTab);
   console.log("Filtered students count:", mockStudents.length);
@@ -134,8 +171,8 @@ const Index: React.FC = () => {
         {/* Featured Student Section */}
         <div className="mb-12 animate-fade-in">
           <FeaturedStudent 
-            student={featuredStudent}
-            onViewProfile={() => navigate(`/student/${featuredStudent.id}`)}
+            student={featured}
+            onViewProfile={() => navigate(`/student/${featured.id}`)}
           />
         </div>
 

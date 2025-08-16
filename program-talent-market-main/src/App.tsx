@@ -42,6 +42,11 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminReports from "./pages/AdminReports";
 import AdminSettings from "./pages/AdminSettings";
+import AdminReviewJobs from "./pages/AdminReviewJobs";
+import AdminSpotlightSuccess from "./pages/AdminSpotlightSuccess";
+
+// New dashboard pages
+import { AdminDashboardPage, StudentDashboardPage, ClientDashboardPage } from "./pages/Dashboards";
 
 // ---------- Inline layout with sidebar + header ----------
 function Layout({ children }: { children: React.ReactNode }) {
@@ -90,7 +95,7 @@ const App: React.FC = () => {
                 path="/client-dashboard"
                 element={
                   <ProtectedRoute>
-                    <Layout><ManageJobs /></Layout>
+                    <Layout><ClientDashboardPage /></Layout>
                   </ProtectedRoute>
                 }
               />
@@ -156,7 +161,7 @@ const App: React.FC = () => {
                 path="/student-dashboard"
                 element={
                   <ProtectedRoute>
-                    <Layout><StudentResources /></Layout>
+                    <Layout><StudentDashboardPage /></Layout>
                   </ProtectedRoute>
                 }
               />
@@ -199,7 +204,7 @@ const App: React.FC = () => {
                 path="/admin-dashboard"
                 element={
                   <ProtectedRoute requiredRole="admin">
-                    <Layout><AdminStats /></Layout>
+                    <Layout><AdminDashboardPage /></Layout>
                   </ProtectedRoute>
                 }
               />
@@ -220,6 +225,14 @@ const App: React.FC = () => {
                 }
               />
               <Route
+                path="/admin/stats"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Layout><AdminStats /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/reports"
                 element={
                   <ProtectedRoute requiredRole="admin">
@@ -228,10 +241,26 @@ const App: React.FC = () => {
                 }
               />
               <Route
+                path="/admin/review-jobs"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Layout><AdminReviewJobs /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/settings"
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <Layout><AdminSettings /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/spotlight"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Layout><AdminSpotlightSuccess /></Layout>
                   </ProtectedRoute>
                 }
               />

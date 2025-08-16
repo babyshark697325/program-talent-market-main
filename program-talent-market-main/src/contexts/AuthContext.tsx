@@ -127,24 +127,35 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
       setUser(u);
 
       if (u) {
-        // Keep app tables in sync any time we get a valid session
-        await Promise.all([ensureProfile(u), ensureUserRoleRow(u)]);
-        let role = await fetchUserRole(u.id);
+        // Ensure guest mode is cleared when a real session exists
+        setIsGuest(false);
 
-        // Fallback: if DB role is missing/invalid, derive from metadata and try to persist
-        if (!role) {
-          const md: any = u.user_metadata || {};
-          role = normalizeRole(md.role);
+        // Set a preliminary role from metadata immediately for fast UI routing
+        const md: any = u.user_metadata || {};
+        const prelimRole: Role = normalizeRole(md.role);
+        setUserRole(prelimRole);
+
+        // Run profile sync + role ensure + DB fetch in background without blocking UI
+        ;(async () => {
           try {
-            await supabase
-              .from("user_roles")
-              .upsert([{ user_id: u.id, role }] as any, { onConflict: "user_id" });
+            await Promise.all([ensureProfile(u), ensureUserRoleRow(u)]);
+            const dbRole = await fetchUserRole(u.id);
+            let finalRole: Role = dbRole ?? prelimRole;
+            // If DB role missing, try to persist prelim role
+            if (!dbRole) {
+              try {
+                await supabase
+                  .from("user_roles")
+                  .upsert([{ user_id: u.id, role: prelimRole }] as any, { onConflict: "user_id" });
+              } catch (e) {
+                console.warn("[Auth] upsert fallback role error:", e);
+              }
+            }
+            setUserRole(finalRole);
           } catch (e) {
-            console.warn("[Auth] upsert fallback role error:", e);
+            console.warn("[Auth] background role/profile sync error:", e);
           }
-        }
-
-        setUserRole(role);
+        })();
       } else {
         setUserRole(null);
       }
@@ -171,9 +182,10 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
     };
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      (_event, newSession) => {
         try {
-          await loadSessionAndRole(newSession ?? null);
+          // Do not block UI on background sync
+          loadSessionAndRole(newSession ?? null);
         } catch (e) {
           console.error("[Auth] onAuthStateChange error:", e);
         } finally {
@@ -263,6 +275,20 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
   };
 
   const continueAsGuest = () => {
+    // Clear any stale Supabase auth tokens that could trigger 400 refresh calls
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i)!;
+        if (k.startsWith("sb-")) localStorage.removeItem(k);
+      }
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i)!;
+        if (k.startsWith("sb-")) sessionStorage.removeItem(k);
+      }
+    } catch {
+      /* ignore */
+    }
+
     setIsGuest(true);
     setLoading(false);
   };

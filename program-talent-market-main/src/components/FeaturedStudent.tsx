@@ -12,6 +12,7 @@ interface FeaturedStudentProps {
     avatarUrl: string;
     skills: string[];
     quote: string;
+    showcaseImage?: string;
     clientReview: {
       text: string;
       clientName: string;
@@ -96,8 +97,18 @@ const FeaturedStudent: React.FC<FeaturedStudentProps> = ({ student, onViewProfil
             </Button>
             </div>
 
-            {/* Enhanced Client Review */}
+            {/* Showcase Work (optional) + Client Review */}
             <div className="bg-card/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-primary/10 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+              {student.showcaseImage && (
+                <div className="mb-6">
+                  <h5 className="font-bold text-card-foreground mb-3 text-lg">Showcase Work</h5>
+                  <img
+                    src={student.showcaseImage}
+                    alt="Showcase Work"
+                    className="w-full max-h-64 object-cover rounded-xl border"
+                  />
+                </div>
+              )}
               <div className="mb-6">
                 <h5 className="font-bold text-card-foreground mb-3 text-lg">Recent Client Review</h5>
                 <div className="flex items-center gap-2 mb-4">

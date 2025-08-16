@@ -15,14 +15,13 @@ import {
 } from "lucide-react";
 import { mockStudents } from "@/data/mockStudents";
 import { JobPosting } from "@/data/mockJobs";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface AdminDashboardProps {
   jobs: JobPosting[];
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ jobs }) => {
-  const navigate = useNavigate();
 
   // Mock admin statistics
   const adminStats = {
@@ -130,21 +129,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ jobs }) => {
               System Management
             </h2>
             <div className="space-y-4">
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2" size={18} />
-                Manage Users
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link to="/admin/users">
+                  <Users className="mr-2" size={18} />
+                  Manage Users
+                </Link>
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Briefcase className="mr-2" size={18} />
-                Review Job Postings
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link to="/manage-jobs">
+                  <Briefcase className="mr-2" size={18} />
+                  Review Job Postings
+                </Link>
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Shield className="mr-2" size={18} />
-                Security Settings
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link to="/admin/settings">
+                  <Shield className="mr-2" size={18} />
+                  Security Settings
+                </Link>
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <BarChart3 className="mr-2" size={18} />
-                View Analytics
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link to="/admin/analytics">
+                  <BarChart3 className="mr-2" size={18} />
+                  View Analytics
+                </Link>
+              </Button>
+              <Button className="w-full justify-start" variant="outline" asChild>
+                <Link to="/admin/spotlight">
+                  <TrendingUp className="mr-2" size={18} />
+                  Spotlight Success
+                </Link>
               </Button>
             </div>
           </Card>

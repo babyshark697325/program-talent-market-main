@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
 
@@ -25,6 +25,7 @@ const getPathForRole = (role?: Role | null) =>
 const Auth: React.FC = () => {
   const { signIn, signUp, user, userRole, continueAsGuest, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [tab, setTab] = React.useState<"signin" | "signup">("signin");
@@ -44,6 +45,14 @@ const Auth: React.FC = () => {
     }
   }, [loading, user, userRole, navigate]);
 
+  // If redirected from a restricted guest action, switch to signup tab
+  React.useEffect(() => {
+    const st = location.state as any;
+    if (st?.signup) {
+      setTab("signup");
+    }
+  }, [location.state]);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting("in");
@@ -61,21 +70,8 @@ const Auth: React.FC = () => {
         });
         return;
       }
-
-      // Fallback: fetch role once if context hasn't updated yet
-      let role: Role | null = userRole;
-      if (!role) {
-        const { data: { user: u } } = await supabase.auth.getUser();
-        if (u) {
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", u.id)
-            .maybeSingle();
-          role = data?.role ? normalizeRole(data.role) : null;
-        }
-      }
-      navigate(getPathForRole(role), { replace: true });
+      // Do not navigate immediately; let onAuthStateChange update context and
+      // the effect below will navigate once user/session are ready.
     } finally {
       setSubmitting(null);
     }
@@ -337,7 +333,7 @@ const Auth: React.FC = () => {
           <Separator className="my-6" />
 
           <div className="space-y-3">
-            <Button variant="outline" className="w-full" onClick={continueAsGuest}>
+            <Button variant="outline" className="w-full" onClick={handleGuest}>
               Continue as Guest
             </Button>
           </div>

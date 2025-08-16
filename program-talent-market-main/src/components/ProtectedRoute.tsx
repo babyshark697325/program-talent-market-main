@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 type Role = "student" | "client" | "admin";
@@ -10,7 +10,7 @@ type Props = {
 };
 
 const ProtectedRoute: React.FC<Props> = ({ children, requiredRole }) => {
-  const { user, userRole, loading } = useAuth();
+  const { user, session, userRole, loading, isGuest } = useAuth();
   const [waited, setWaited] = React.useState(false);
 
   // Safety valve for any slow/failed auth fetch: stop showing spinner after 5s
@@ -27,18 +27,42 @@ const ProtectedRoute: React.FC<Props> = ({ children, requiredRole }) => {
     );
   }
 
-  // Not authenticated → go to auth
-  if (!user) return <Navigate to="/auth" replace />;
+  // Guests can browse most pages, but block specific client actions
+  const location = useLocation();
+  const restrictedForGuests = new Set<string>(["/post-job", "/manage-jobs", "/client-dashboard"]);
+  if (isGuest && restrictedForGuests.has(location.pathname)) {
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        state={{ signup: true, from: location.pathname }}
+      />
+    );
+  }
 
-  // Authenticated, but wrong role for this page → send to their dashboard
-  if (requiredRole && userRole && userRole !== requiredRole) {
-    const dest =
-      userRole === "admin"
-        ? "/admin-dashboard"
-        : userRole === "student"
-        ? "/student-dashboard"
-        : "/client-dashboard";
-    return <Navigate to={dest} replace />;
+  // Not authenticated (and not a guest) → go to auth
+  // Treat an existing session as authenticated even if user is still populating
+  if (!session && !isGuest) return <Navigate to="/auth" replace />;
+
+  // Role-gated routes (e.g., admin) must match exactly; guests have no role → redirect
+  // If role is still loading/unknown but we have a session, show a small spinner instead of bouncing
+  if (requiredRole) {
+    if (!userRole && !waited) {
+      return (
+        <div className="min-h-screen grid place-items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      );
+    }
+    if (userRole !== requiredRole) {
+      return (
+        <Navigate
+          to="/auth"
+          replace
+          state={{ requireRole: requiredRole, from: location.pathname }}
+        />
+      );
+    }
   }
 
   return <>{children}</>;
