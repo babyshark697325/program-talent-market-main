@@ -85,16 +85,26 @@ async function ensureUserRoleRow(u: User) {
   try {
     const { data: existing } = await supabase
       .from("user_roles")
-      .select("role")
+      .select("user_id, role")
       .eq("user_id", u.id)
       .maybeSingle();
 
+    const md: any = u.user_metadata || {};
+    const desiredRole: Role = normalizeRole(md.role);
+
     if (!existing) {
-      const md: any = u.user_metadata || {};
-      const roleToSet: Role = normalizeRole(md.role);
+      // No row yet → create with desired role (metadata or default client)
       await supabase
         .from("user_roles")
-        .upsert([{ user_id: u.id, role: roleToSet }] as any, { onConflict: "user_id" });
+        .upsert([{ user_id: u.id, role: desiredRole }] as any, { onConflict: "user_id" });
+      return;
+    }
+
+    // Row exists: if role is null/invalid, repair it to desiredRole
+    const r: any = existing.role;
+    const valid = r === "student" || r === "client" || r === "admin";
+    if (!valid) {
+      await supabase.from("user_roles").update({ role: desiredRole } as any).eq("user_id", u.id);
     }
   } catch (e) {
     console.warn("[Auth] ensureUserRoleRow error:", e);
@@ -119,7 +129,21 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
       if (u) {
         // Keep app tables in sync any time we get a valid session
         await Promise.all([ensureProfile(u), ensureUserRoleRow(u)]);
-        const role = await fetchUserRole(u.id);
+        let role = await fetchUserRole(u.id);
+
+        // Fallback: if DB role is missing/invalid, derive from metadata and try to persist
+        if (!role) {
+          const md: any = u.user_metadata || {};
+          role = normalizeRole(md.role);
+          try {
+            await supabase
+              .from("user_roles")
+              .upsert([{ user_id: u.id, role }] as any, { onConflict: "user_id" });
+          } catch (e) {
+            console.warn("[Auth] upsert fallback role error:", e);
+          }
+        }
+
         setUserRole(role);
       } else {
         setUserRole(null);
@@ -162,7 +186,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
 
     return () => {
       cancelled = true;
-      listener.subscription.unsubscribe();
+      listener?.subscription?.unsubscribe?.();
     };
   }, []);
 
