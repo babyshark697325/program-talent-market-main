@@ -13,6 +13,7 @@ interface FeaturedStudentProps {
     skills: string[];
     quote: string;
     showcaseImage?: string;
+    showcaseOrientation?: 'landscape' | 'portrait';
     clientReview: {
       text: string;
       clientName: string;
@@ -77,6 +78,14 @@ const FeaturedStudent: React.FC<FeaturedStudentProps> = ({ student, onViewProfil
                 ))}
               </div>
 
+              <Button 
+                onClick={onViewProfile}
+                variant="default"
+                className="mb-4 px-8 py-3 rounded-2xl font-semibold shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
+              >
+                View Full Profile
+              </Button>
+
               {/* Enhanced Student Quote */}
               <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-6 mb-6 relative shadow-lg border border-primary/10 hover:shadow-xl transition-all duration-300">
                 <Quote size={20} className="text-primary/50 absolute top-4 left-4" />
@@ -88,27 +97,28 @@ const FeaturedStudent: React.FC<FeaturedStudentProps> = ({ student, onViewProfil
                 </div>
               </div>
 
-            <Button 
-              onClick={onViewProfile}
-              variant="default"
-              className="px-8 py-3 rounded-2xl font-semibold shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105"
-            >
-              View Full Profile
-            </Button>
-            </div>
+                        </div>
 
-            {/* Showcase Work (optional) + Client Review */}
-            <div className="bg-card/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-primary/10 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
-              {student.showcaseImage && (
-                <div className="mb-6">
-                  <h5 className="font-bold text-card-foreground mb-3 text-lg">Showcase Work</h5>
+            {/* Showcase Work (optional) */}
+            {student.showcaseImage && (
+              <div className="bg-card/90 backdrop-blur-sm rounded-2xl p-0 shadow-xl border border-primary/10 overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                <div className="relative w-full aspect-video md:aspect-[4/3]">
                   <img
                     src={student.showcaseImage}
                     alt="Showcase Work"
-                    className="w-full max-h-64 object-cover rounded-xl border"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
+                  <div className="absolute top-3 left-3">
+                    <span className="inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold shadow-sm border border-border bg-white/90 text-foreground dark:bg-background/70 dark:text-foreground backdrop-blur">
+                      Showcase Work
+                    </span>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Client Review (full width below both columns) */}
+            <div className="md:col-span-2 bg-card/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-primary/10 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
               <div className="mb-6">
                 <h5 className="font-bold text-card-foreground mb-3 text-lg">Recent Client Review</h5>
                 <div className="flex items-center gap-2 mb-4">

@@ -29,6 +29,7 @@ const AdminSpotlightSuccess: React.FC = () => {
   const [quote, setQuote] = React.useState("");
   const [studentId, setStudentId] = React.useState<number | null>(null);
   const [showcaseImage, setShowcaseImage] = React.useState<string>("");
+  const [showcaseFile, setShowcaseFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
     try {
@@ -50,14 +51,27 @@ const AdminSpotlightSuccess: React.FC = () => {
 
   const profilePath = selectedStudent ? `/student/${selectedStudent.id}` : "";
 
-  const save = () => {
+  const save = async () => {
     try {
       localStorage.setItem(LS_QUOTE_KEY, quote);
       if (studentId) localStorage.setItem(LS_STUDENT_ID_KEY, String(studentId));
       else localStorage.removeItem(LS_STUDENT_ID_KEY);
-      if (showcaseImage) localStorage.setItem(LS_SHOWCASE_IMAGE_KEY, showcaseImage);
-      else localStorage.removeItem(LS_SHOWCASE_IMAGE_KEY);
+
+      // If a new file was chosen this session, compress and store it; otherwise
+      // only store if the current preview is a data URL (not a blob URL)
+      if (showcaseFile) {
+        const dataUrl = await compressImage(showcaseFile, 1600, 0.8);
+        localStorage.setItem(LS_SHOWCASE_IMAGE_KEY, dataUrl);
+        setShowcaseImage(dataUrl);
+        setShowcaseFile(null);
+      } else if (showcaseImage && showcaseImage.startsWith('data:')) {
+        localStorage.setItem(LS_SHOWCASE_IMAGE_KEY, showcaseImage);
+      } else if (!showcaseImage) {
+        localStorage.removeItem(LS_SHOWCASE_IMAGE_KEY);
+      }
+
       toast({ title: "Spotlight saved", description: "Your spotlight settings were updated." });
+      try { window.dispatchEvent(new Event('spotlight:updated')); } catch {}
     } catch (e: any) {
       toast({ title: "Couldn’t save", description: e?.message ?? String(e), variant: "destructive" });
     }
@@ -83,18 +97,63 @@ const AdminSpotlightSuccess: React.FC = () => {
     navigate(profilePath);
   };
 
+  // Downscale/compress image to keep under localStorage limits and ensure reliability
+  const compressImage = (file: File, maxSize = 1600, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > height && width > maxSize) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const onPickShowcase = async (file: File | undefined | null) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid file", description: "Please upload an image.", variant: "destructive" });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setShowcaseImage(String(reader.result || ""));
-    reader.readAsDataURL(file);
+    // Immediate preview as data URL (robust across browsers); compress original on save
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        setShowcaseImage(result);
+        setShowcaseFile(file);
+      };
+      reader.onerror = () => toast({ title: "Couldn’t load image", description: "Please try a different file.", variant: "destructive" });
+      reader.readAsDataURL(file);
+    } catch (e: any) {
+      toast({ title: "Couldn’t load image", description: e?.message ?? String(e), variant: "destructive" });
+    }
   };
 
-  const clearShowcase = () => setShowcaseImage("");
+  const clearShowcase = () => {
+    setShowcaseImage("");
+    setShowcaseFile(null);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -169,6 +228,11 @@ const AdminSpotlightSuccess: React.FC = () => {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">This image will appear on the client Spotlight Success card as “Showcase Work”.</p>
+                <ul className="text-xs text-muted-foreground pl-5 list-disc space-y-1 mt-1">
+                  <li>Recommended landscape: 1200×675 (16:9)</li>
+                  <li>Recommended portrait: 1200×1500 (4:5)</li>
+                  <li>Maximum processed size: long edge up to 1600px (larger files are downscaled)</li>
+                </ul>
               </div>
 
               <div className="flex items-center gap-2 justify-end pt-2">
@@ -224,11 +288,13 @@ const AdminSpotlightSuccess: React.FC = () => {
                   {showcaseImage && (
                     <div className="mt-4">
                       <div className="text-xs font-medium mb-2">Showcase Work</div>
-                      <img
-                        src={showcaseImage}
-                        alt="Showcase Work"
-                        className="w-full max-h-64 object-cover rounded-xl border"
-                      />
+                      <div className="relative w-full overflow-hidden rounded-xl border aspect-video">
+                        <img
+                          src={showcaseImage}
+                          alt="Showcase Work"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
                   )}
 

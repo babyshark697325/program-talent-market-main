@@ -37,6 +37,12 @@ function getSpotlightFromStorage() {
       skills: s.skills,
       quote: q || "Building amazing web experiences is my passion. Every line of code I write aims to create something that users will love and businesses will thrive with!",
       showcaseImage: img || undefined,
+      showcaseOrientation: (function() {
+        // Infer orientation from recommended AR: if height/width >= 1.1, portrait; else landscape
+        // We can't read pixels here, so store a hint in localStorage optionally later.
+        const hint = localStorage.getItem('spotlight.orientation');
+        return hint === 'portrait' ? 'portrait' : 'landscape';
+      })(),
       clientReview: {
         text: "Alex built our entire e-commerce platform from scratch and it's been a game-changer for our business. The site is fast, beautiful, and user-friendly. Sales increased by 40% in the first month!",
         clientName: "Sarah Johnson, Store Owner",
@@ -75,18 +81,31 @@ const Index: React.FC = () => {
 
   // Handle tab switching from sidebar navigation
   useEffect(() => {
-    if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
+    const st: any = location.state;
+    if (st?.activeTab) {
+      setActiveTab(st.activeTab);
+      // scroll target handling after a tick to allow render
+      const target = st?.scrollTo;
+      setTimeout(() => {
+        if (target === 'students') {
+          const el = document.getElementById('students-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 0);
       // Clear the state to prevent it from persisting
       navigate(location.pathname, { replace: true });
     }
   }, [location.state, navigate, location.pathname]);
 
-  // Reload spotlight on focus in case admin updated it
+  // Reload spotlight on focus or when admin saves settings
   useEffect(() => {
-    const onFocus = () => setFeatured(getSpotlightFromStorage());
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    const refresh = () => setFeatured(getSpotlightFromStorage());
+    window.addEventListener('focus', refresh);
+    window.addEventListener('spotlight:updated', refresh as EventListener);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('spotlight:updated', refresh as EventListener);
+    };
   }, []);
 
   console.log("Current activeTab:", activeTab);
@@ -190,6 +209,9 @@ const Index: React.FC = () => {
           studentsCount={mockStudents.length}
           jobsCount={jobs.length}
         />
+
+        {/* Anchor for scrolling to students list */}
+        <div id="students-section" />
 
         <SearchFilters
           search={search}

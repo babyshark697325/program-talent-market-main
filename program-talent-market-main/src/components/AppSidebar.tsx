@@ -37,6 +37,8 @@ const clientNavigation = [
     title: "Browse Talent",
     url: "/",
     icon: Home,
+    tab: "students",
+    scrollTo: "students",
   },
   {
     title: "Post a Job",
@@ -135,8 +137,8 @@ export function AppSidebar() {
 
   const handleNavigation = (item: any) => {
     if (item.tab) {
-      // Navigate to the URL and pass the tab in state
-      navigate(item.url, { state: { activeTab: item.tab } })
+      // Navigate to the URL and pass the tab and optional scroll target in state
+      navigate(item.url, { state: { activeTab: item.tab, scrollTo: item.scrollTo } })
     } else {
       navigate(item.url)
     }
