@@ -42,6 +42,12 @@ const UserMenu: React.FC = () => {
     (user.email as string) ||
     "User";
 
+  const normalizeRole = (v: any) =>
+    v === "student" || v === "client" || v === "admin" ? v : "client";
+
+  const metaRole = normalizeRole((user.user_metadata as any)?.role);
+  const displayRole = userRole ?? metaRole ?? "client";
+
   const goProfile = (e?: any) => {
     e?.preventDefault?.();
     navigate("/profile");
@@ -79,7 +85,7 @@ const UserMenu: React.FC = () => {
           <span className="text-xs text-muted-foreground truncate">{user.email}</span>
           <div className="mt-1">
             <Badge variant="secondary" className="text-[10px] uppercase">
-              {userRole || "unknown"}
+              {displayRole}
             </Badge>
           </div>
         </DropdownMenuLabel>
